@@ -1,0 +1,22 @@
+
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'   # Solo cuando el tag parece una versión: v1.0.0, v2.3.4, etc.
+
+jobs:
+  usar-receta-compartida:
+    # Aquí no repetimos los pasos de Docker: delegamos al otro repositorio
+    uses: jp69420/AUY1104-SharedWorkflows/.github/workflows/deploy-api.yaml@main
+
+    # Valores que le "pasamos" a la receta
+    with:
+      image-name: demo-api
+      
+      image-tag: ${{ github.ref_name }}
+
+    # Datos sensibles configurados en GitHub → Settings → Secrets
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
