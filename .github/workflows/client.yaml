@@ -1,4 +1,4 @@
- ─────────────────────────────────────────────────────────────
+
 # Este archivo vive en el repo del alumno / del proyecto.
 # Cuando publicas una versión con etiqueta tipo v1.2.3, GitHub ejecuta
 # la receta del repo central (SharedWorkflows) para empaquetar y subir la imagen.
