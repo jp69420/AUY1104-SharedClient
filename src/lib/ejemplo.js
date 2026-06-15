@@ -2,7 +2,7 @@
 // Esto permite testear sin levantar el servidor
 
 function estadoSalud() {
-  return { status: 'ok', mensaje: 'API funcionando correctamente' };
+  return { status: 'ok', mensaje: 'mi-api' };
 }
 
 function saludo(nombre) {
