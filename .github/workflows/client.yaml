@@ -1,27 +1,22 @@
-# Este archivo vive en el repo del alumno / del proyecto.
-# Cuando publicas una versión con etiqueta tipo v1.2.3, GitHub ejecuta
-# la receta del repo central (SharedWorkflows) para empaquetar y subir la imagen.
-# ─────────────────────────────────────────────────────────────
 on:
   push:
     tags:
-      # Solo cuando el tag parece una versión: v1.0.0, v2.3.4, etc.
       - 'v*.*.*' 
   workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   usar-receta-compartida:
     uses: jp69420/AUY1104-SharedWorkflows/.github/workflows/deply-api.yaml@main
     
-    # Valores que le “pasamos” a la receta (alineado a deploy-api.yaml en SharedWorkflows)
     with:
       image-name: demo-api
-      # Mismo nombre que el tag que disparó el workflow (ej. v1.2.3 → la imagen lleva esa “versión”)
       image-tag: ${{ github.ref_name }}
-      # Variable de repo (Settings → Secrets and variables → Actions → Variables)
       k3s-server-public-ip: ${{ vars.K3S_SERVER_PUBLIC_IP }}
       
-    # Mismos secretos que declara workflow_call en deploy-api.yaml (DOCKER_* + SSH al nodo K3s)
     secrets:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
