@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:IMAGEN-INEXISTENTE-999
 
 WORKDIR /app
 
