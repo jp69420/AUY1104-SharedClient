@@ -1,0 +1,13 @@
+name: Test Docker Login
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test login
+        run: |
+          echo "Usuario: ${{ secrets.DOCKER_USERNAME }}"
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login docker.io -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
