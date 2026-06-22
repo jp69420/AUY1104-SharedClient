@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: demo-api
-          image: ghcr.io/jp69420/demo-api:latest
+          image: ghcr.io/jp69420/demo-api:version-inexistente-999
           ports:
             - containerPort: 3000
           readinessProbe:
