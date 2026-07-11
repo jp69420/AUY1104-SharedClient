@@ -1,0 +1,87 @@
+name: Operación Resiliencia - Blue/Green Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # 1. Preparación: Analiza el clúster para saber si estamos en Blue o Green
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      target_color: ${{ steps.color.outputs.NEW_COLOR }}
+      current_color: ${{ steps.color.outputs.OLD_COLOR }}
+    steps:
+      - name: Configurar K8s
+        uses: azure/k8s-set-context@v3
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+      - name: Determinar color activo
+        id: color
+        run: |
+          CURRENT=$(kubectl get svc demo-api -o jsonpath='{.spec.selector.color}' --ignore-not-found)
+          if [ "$CURRENT" == "blue" ]; then
+            echo "NEW_COLOR=green" >> $GITHUB_OUTPUT
+            echo "OLD_COLOR=blue" >> $GITHUB_OUTPUT
+          else
+            echo "NEW_COLOR=blue" >> $GITHUB_OUTPUT
+            echo "OLD_COLOR=green" >> $GITHUB_OUTPUT
+          fi
+
+  # 2. Build: Llama a tu plantilla reutilizable
+  build:
+    uses: jp69420/AUY1104-SharedWorkflows/.github/workflows/build-push.yaml@main
+    with:
+      image_name: ghcr.io/jp69420/demo-api
+      image_tag: ${{ github.sha }}
+
+  # 3. Deploy: Llama a tu plantilla reutilizable y envía la nueva versión al clúster (SIN cambiar el tráfico aún)
+  deploy:
+    needs: [prepare, build]
+    uses: jp69420/AUY1104-SharedWorkflows/.github/workflows/deploy-k8s.yaml@main
+    with:
+      image_tag: ${{ github.sha }}
+      target_color: ${{ needs.prepare.outputs.target_color }}
+    secrets:
+      KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+
+  # 4. Prueba de Fuego: Health Check y Switch/Rollback
+  health_and_switch:
+    needs: [prepare, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+        
+      - name: Configurar K8s
+        uses: azure/k8s-set-context@v3
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+
+      - name: Validación de Salud (Health Check)
+        id: health_check
+        run: |
+          echo "Validando que la versión ${{ needs.prepare.outputs.target_color }} esté sana..."
+          # Esto fallará si el contenedor entra en CrashLoopBackOff (el error que el profe inyectará)
+          kubectl rollout status deployment/demo-api-${{ needs.prepare.outputs.target_color }} --timeout=60s
+
+      - name: Cambio de Tráfico (Switch al 100%)
+        # Solo se ejecuta si el paso anterior fue exitoso
+        if: success() 
+        run: |
+          echo "Validación exitosa. Cambiando tráfico a ${{ needs.prepare.outputs.target_color }}..."
+          sed -i "s/\${ACTIVE_COLOR}/${{ needs.prepare.outputs.target_color }}/g" k8s/service.yaml
+          kubectl apply -f k8s/service.yaml
+
+      - name: Remediación Automática (Rollback del Caos)
+        # Este paso es tu seguro de vida. Solo se activa si falla el Health Check.
+        if: failure()
+        run: |
+          echo "¡ALERTA! Se detectó un fallo crítico en la nueva versión."
+          echo "El tráfico sigue apuntando de forma segura a la versión ${{ needs.prepare.outputs.current_color }}."
+          echo "Ejecutando Rollback: Limpiando el entorno defectuoso..."
+          kubectl delete deployment demo-api-${{ needs.prepare.outputs.target_color }}
+          exit 1
