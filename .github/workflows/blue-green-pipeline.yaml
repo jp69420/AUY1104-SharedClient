@@ -72,11 +72,17 @@ jobs:
       - name: Cambio de Tráfico (Switch al 100%)
         if: success() 
         run: |
-          echo "Validación exitosa. Cambiando tráfico a ${{ needs.prepare.outputs.target_color }}..."
+          echo "Validación exitosa. Evaluando estado del servicio..."
           
-          # Actualizamos únicamente el selector de color al vuelo mediante un parche.
-          # Esto evita tocar la configuración del NodePort y hace el cambio instantáneo.
-          kubectl patch svc demo-api -p '{"spec":{"selector":{"color":"${{ needs.prepare.outputs.target_color }}"}}}' --insecure-skip-tls-verify
+          # Verificamos si el servicio ya está levantado en el clúster
+          if kubectl get svc demo-api --insecure-skip-tls-verify > /dev/null 2>&1; then
+            echo "El servicio existe. Parcheando el tráfico hacia ${{ needs.prepare.outputs.target_color }}..."
+            kubectl patch svc demo-api -p '{"spec":{"selector":{"color":"${{ needs.prepare.outputs.target_color }}"}}}' --insecure-skip-tls-verify
+          else
+            echo "El servicio NO existe (fue borrado o es primera vez). Creándolo..."
+            sed -i "s/\${ACTIVE_COLOR}/${{ needs.prepare.outputs.target_color }}/g" k8s/service.yaml
+            kubectl apply -f k8s/service.yaml --insecure-skip-tls-verify --validate=false
+          fi
 
       - name: Remediación Automática (Rollback del Caos)
         if: failure()
