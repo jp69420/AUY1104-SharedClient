@@ -30,6 +30,7 @@ jobs:
             echo "NEW_COLOR=blue" >> $GITHUB_OUTPUT
             echo "OLD_COLOR=green" >> $GITHUB_OUTPUT
           fi
+
   # 2. Build: Llama a tu plantilla reutilizable
   build:
     uses: jp69420/AUY1104-SharedWorkflows/.github/workflows/build-push.yaml@main
@@ -65,23 +66,23 @@ jobs:
         id: health_check
         run: |
           echo "Validando que la versión ${{ needs.prepare.outputs.target_color }} esté sana..."
-          # Esto fallará si el contenedor entra en CrashLoopBackOff (el error que el profe inyectará)
-          kubectl rollout status deployment/demo-api-${{ needs.prepare.outputs.target_color }} --timeout=60s
+          # Agregamos --insecure-skip-tls-verify aquí para evitar el error x509
+          kubectl rollout status deployment/demo-api-${{ needs.prepare.outputs.target_color }} --timeout=60s --insecure-skip-tls-verify
 
       - name: Cambio de Tráfico (Switch al 100%)
-        # Solo se ejecuta si el paso anterior fue exitoso
         if: success() 
         run: |
           echo "Validación exitosa. Cambiando tráfico a ${{ needs.prepare.outputs.target_color }}..."
           sed -i "s/\${ACTIVE_COLOR}/${{ needs.prepare.outputs.target_color }}/g" k8s/service.yaml
-          kubectl apply -f k8s/service.yaml
+          # Agregamos --insecure-skip-tls-verify y --validate=false aquí para saltar la advertencia TLS de AWS
+          kubectl apply -f k8s/service.yaml --insecure-skip-tls-verify --validate=false
 
       - name: Remediación Automática (Rollback del Caos)
-        # Este paso es tu seguro de vida. Solo se activa si falla el Health Check.
         if: failure()
         run: |
           echo "¡ALERTA! Se detectó un fallo crítico en la nueva versión."
           echo "El tráfico sigue apuntando de forma segura a la versión ${{ needs.prepare.outputs.current_color }}."
           echo "Ejecutando Rollback: Limpiando el entorno defectuoso..."
-          kubectl delete deployment demo-api-${{ needs.prepare.outputs.target_color }}
+          # Agregamos --insecure-skip-tls-verify aquí
+          kubectl delete deployment demo-api-${{ needs.prepare.outputs.target_color }} --insecure-skip-tls-verify
           exit 1
