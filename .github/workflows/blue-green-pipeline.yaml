@@ -13,11 +13,12 @@ jobs:
       target_color: ${{ steps.color.outputs.NEW_COLOR }}
       current_color: ${{ steps.color.outputs.OLD_COLOR }}
     steps:
-      - name: Configurar K8s
-        uses: azure/k8s-set-context@v3
-        with:
-          method: kubeconfig
-          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+      - name: Configurar K8s de forma manual
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
+          chmod 600 ~/.kube/config
+
       - name: Determinar color activo
         id: color
         run: |
