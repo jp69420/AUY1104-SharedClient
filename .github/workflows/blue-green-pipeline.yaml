@@ -22,7 +22,7 @@ jobs:
         env:
           KUBECONFIG: ./kubeconfig.yaml
         run: |
-          CURRENT=$(kubectl get svc demo-api -o jsonpath='{.spec.selector.color}' --ignore-not-found)
+          CURRENT=$(kubectl get svc demo-api --insecure-skip-tls-verify -o jsonpath='{.spec.selector.color}' --ignore-not-found)
           if [ "$CURRENT" == "blue" ]; then
             echo "NEW_COLOR=green" >> $GITHUB_OUTPUT
             echo "OLD_COLOR=blue" >> $GITHUB_OUTPUT
@@ -30,7 +30,6 @@ jobs:
             echo "NEW_COLOR=blue" >> $GITHUB_OUTPUT
             echo "OLD_COLOR=green" >> $GITHUB_OUTPUT
           fi
-
   # 2. Build: Llama a tu plantilla reutilizable
   build:
     uses: jp69420/AUY1104-SharedWorkflows/.github/workflows/build-push.yaml@main
