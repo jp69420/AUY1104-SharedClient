@@ -75,8 +75,11 @@ jobs:
           echo "Validación exitosa. Cambiando tráfico a ${{ needs.prepare.outputs.target_color }}..."
           sed -i "s/\${ACTIVE_COLOR}/${{ needs.prepare.outputs.target_color }}/g" k8s/service.yaml
           
+          # 1. Borramos el servicio existente para garantizar que suelte el puerto 30090
+          kubectl delete svc demo-api --insecure-skip-tls-verify --ignore-not-found
           
-          kubectl replace --force -f k8s/service.yaml --insecure-skip-tls-verify --validate=false
+          # 2. Aplicamos el nuevo servicio limpio con el color actualizado
+          kubectl apply -f k8s/service.yaml --insecure-skip-tls-verify --validate=false
 
       - name: Remediación Automática (Rollback del Caos)
         if: failure()
