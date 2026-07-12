@@ -74,8 +74,9 @@ jobs:
         run: |
           echo "Validación exitosa. Cambiando tráfico a ${{ needs.prepare.outputs.target_color }}..."
           sed -i "s/\${ACTIVE_COLOR}/${{ needs.prepare.outputs.target_color }}/g" k8s/service.yaml
-          # Agregamos --insecure-skip-tls-verify y --validate=false aquí para saltar la advertencia TLS de AWS
-          kubectl apply -f k8s/service.yaml --insecure-skip-tls-verify --validate=false
+          
+          
+          kubectl replace --force -f k8s/service.yaml --insecure-skip-tls-verify --validate=false
 
       - name: Remediación Automática (Rollback del Caos)
         if: failure()
