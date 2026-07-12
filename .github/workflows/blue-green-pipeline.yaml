@@ -13,14 +13,14 @@ jobs:
       target_color: ${{ steps.color.outputs.NEW_COLOR }}
       current_color: ${{ steps.color.outputs.OLD_COLOR }}
     steps:
-      - name: Configurar K8s de forma manual
+      - name: Escribir Kubeconfig Temporal
         run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
-          chmod 600 ~/.kube/config
+          echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig.yaml
 
       - name: Determinar color activo
         id: color
+        env:
+          KUBECONFIG: ./kubeconfig.yaml
         run: |
           CURRENT=$(kubectl get svc demo-api -o jsonpath='{.spec.selector.color}' --ignore-not-found)
           if [ "$CURRENT" == "blue" ]; then
