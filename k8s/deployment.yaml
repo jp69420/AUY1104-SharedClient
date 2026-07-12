@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: demo-api
-          image: ghcr.io/jp69420/demo-api:ERROR_INTENCIONAL_123
+          image: ghcr.io/jp69420/demo-api:${IMAGE_TAG}
           ports:
             - containerPort: 3000
           readinessProbe:
